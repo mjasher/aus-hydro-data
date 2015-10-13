@@ -1,3 +1,7 @@
+downloaded_data
+too_big_to_git
+clipped_data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
