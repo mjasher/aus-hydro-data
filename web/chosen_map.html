@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <link href='third/leaflet.css' rel='stylesheet' />
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+    }
+    
+    #map-left {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+    }
+    #map-right {
+        position: absolute;
+        right:0;
+        top: 0;
+        bottom: 0;
+        width: 50%;
+    }
+    </style>
+</head>
+
+<body>
+    <div id='map-left'></div>
+    <div id='map-right'></div>
+    <script src='third/leaflet.js'></script>
+    <script src='third/L.Map.Sync.js'></script>
+    <script src='third/d3.min.js'></script>
+    <script src='d3_leaflet.js'></script>
+    <script>
+    L.accessToken = 'pk.eyJ1IjoibWphc2hlciIsImEiOiJjaWZpcmJqamJic2F5c2RrbnZ1ZTR1OWE2In0.GbZuc7sf-iQae4xTsYbTDA';
+
+    var mapboxTiles = L.tileLayer('https://api.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + L.accessToken, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+
+    var stamenLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
+      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+    });
+
+    var map_left = L.map('map-left')
+        .addLayer(stamenLayer)
+        .setView([-36.601152, 144.6076095], 9);
+
+    var map_right = L.map('map-right')
+        .addLayer(mapboxTiles)
+        .setView([-36.601152, 144.6076095], 9);
+
+    map_left.sync(map_right);
+    map_right.sync(map_left);
+
+    var control_left = L.control.layers().addTo(map_left);
+    var control_right = L.control.layers().addTo(map_right);
+
+    L.control.scale().addTo(map_left);
+
+    function onEachFeature(feature, layer) {
+        var popupContent = '<div class="popup">';
+        if (feature.properties) {
+            for (var k in feature.properties) {
+                var v = feature.properties[k];
+                popupContent += k + ': ' + v + '<br />';
+            }
+        }
+        popupContent += '</div>';
+
+        layer.bindPopup(popupContent);
+    }
+
+    var YlOrRd = ["#ffffcc", "#ffeda0", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026"];
+    var Blues = ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
+    var Greens = ["#f7fcf5", "#e5f5e0", "#c7e9c0", "#a1d99b", "#74c476", "#41ab5d", "#238b45", "#006d2c", "#00441b"];
+    var Reds = ["#fff5f0", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"];
+
+    d3.json("/clipped_data/AHGFAquiferContour.json", function(data) {
+        var contours = data.features.map(function(d) {
+            return d.properties["ContValue"];
+        });
+
+        var contour_color = d3.scale.quantize()
+            .domain(d3.extent(contours))
+            .range(YlOrRd);
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "color": contour_color(feature.properties["ContValue"]),
+                        "weight": 5,
+                        "opacity": 1
+                    }
+                }
+            }).addTo(map_left),
+            "Contours"
+        )
+    });
+
+    d3.json("/raster_data/top.json", function(error, data){new d3_layer(data, "top", control_right, d3.scale.quantize().range(YlOrRd)).addTo(map_right); });
+
+    d3.json("/clipped_data/Campaspe_GCU.json", function(data) {
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "color": 'black',
+                        "weight": 5,
+                        "opacity": 1
+                    }
+                }
+            }),
+            "GW Catcment"
+        )
+    });
+
+    d3.json("/raster_data/ibound.json", function(error, data){ var layer = new d3_layer(data, "ibound", control_right, d3.scale.quantize().range(["white", "black"])); map_right.removeLayer(layer); });
+
+
+    </script>
+</body>
+
+</html>
