@@ -241,6 +241,10 @@
         var layer = new d3_layer(data, "sy", control_right, d3.scale.linear().range([Reds[0], Reds[Reds.length-1]]));
         map_right.removeLayer(layer);
     });
+    d3.json("/raster_data/elevation.json", function(data) {
+        var layer = new d3_layer(data, "elevation", control_right, d3.scale.quantize().range(YlOrRd));
+        map_right.removeLayer(layer);
+    });
 
     </script>
 </body>

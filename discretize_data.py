@@ -60,7 +60,7 @@ import csv
 from osgeo import ogr, osr, gdal
 import os
 import copy
-import time
+import datetime
 # import flopy
 
 
@@ -70,7 +70,7 @@ import time
 Converts source layer to raster (array) given a custom function ```rasterize(layer, clipping poly)``` 
 	which takes the layer and polygon for once cell and returns cell's value
 """
-def ogr_to_raster( source_file, nrow, ncol, bbox, rasterize ):
+def ogr_to_raster( source_file, nrow, ncol, bbox, rasterize, filter=False ):
 	# open source (file)
 	source_ds = ogr.Open(source_file)
 	source_layer = source_ds.GetLayer()
@@ -103,7 +103,8 @@ def ogr_to_raster( source_file, nrow, ncol, bbox, rasterize ):
 			# speeds things up but breaks them too
 			# source_layer.SetSpatialFilterRect(x_min+col*pixelWidth, x_min+(col+1)*pixelWidth, y_min+row*pixelHeight, y_min+(row+1)*pixelHeight)
 			# speeds them up, doesn't seem to break them
-			source_layer.SetSpatialFilter(poly)
+			if filter:
+				source_layer.SetSpatialFilter(poly)
 
 			source_layer.ResetReading()
 
@@ -145,6 +146,42 @@ def projected_distance(from_epsg, to_epsg, p1, p2):
 
 	return p1_geo.Distance(p2_geo)
 
+
+class counter():
+	def __init__(self):
+		self.count = 0
+	def inc(self):
+		self.count += 1
+	def tot(self):
+		return self.count
+
+
+def contour_to_array(nrow, ncol, bbox, in_file, prop):
+	# TODO use weighted average rather than simply the closest
+	def rasterize_top(source_layer, clipping_poly):
+		centroid = clipping_poly.Centroid()
+
+		properties = [
+			(feature.GetGeometryRef().Distance(centroid), feature.GetField(prop))
+			for feature in source_layer
+			if feature.GetField(prop) is not None
+		]
+		sorted_properties = np.sort(
+			np.array(
+				properties, 
+				dtype = [('distance', float), (prop, float)]
+			), 
+			order='distance'
+		)
+		val = sorted_properties[0][prop]
+		return val
+
+	# contour_file = os.path.join(data_dir, "APPT250K_Contours_line.json")
+	contour_file = os.path.join(data_dir, in_file)
+
+	return ogr_to_raster( contour_file, nrow, ncol, bbox, rasterize_top)
+
+
 def make_dis(nrow, ncol, bbox):
 
 	x_min = bbox[0][1]
@@ -159,35 +196,19 @@ def make_dis(nrow, ncol, bbox):
 	delr = projected_distance(4326, 4087, {"lng": x_min, "lat": y_min}, {"lng": x_max, "lat": y_min})/ncol 
 	delc = projected_distance(4326, 4087, {"lng": x_min, "lat": y_min}, {"lng": x_min, "lat": y_max})/nrow
 
-	# TODO use weighted average rather than simply the closest
+	top_json = contour_to_array(nrow, ncol, bbox, in_file="AHGFAquiferContour.json", prop='ContValue')
 
-	def rasterize_top(source_layer, clipping_poly):
-		centroid = clipping_poly.Centroid()
-
-		properties = [
-			(feature.GetGeometryRef().Distance(centroid), feature.GetField('ContValue'))
-			for feature in source_layer
-			if feature.GetField('ContValue') is not None
-		]
-		sorted_properties = np.sort(
-			np.array(
-				properties, 
-				dtype = [('distance', float), ('ContValue', float)]
-			), 
-			order='distance'
-		)
-		val = sorted_properties[0]['ContValue']
-		return val
-
-	# contour_file = os.path.join(data_dir, "APPT250K_Contours_line.json")
-	contour_file = os.path.join(data_dir, "AHGFAquiferContour.json")
-
-	top_json = ogr_to_raster( contour_file, nrow, ncol, bbox, rasterize_top)
 	top_json["extra"] = {"delr": delr, "delc": delc}
 	with open(os.path.join(dest_dir, 'top.json'), 'w') as f:
 		f.write(json.dumps(top_json))
 
-	print "delr, delc", delr, delc
+
+def make_elev(nrow, ncol, bbox):
+	
+	elevation_json = contour_to_array(nrow, ncol, bbox, in_file="APPT250K_Contours_line.json", prop='ELEVATION')
+	
+	with open(os.path.join(dest_dir, 'elevation.json'), 'w') as f:
+		f.write(json.dumps(elevation_json))
 
 
 def make_ibound(nrow, ncol, bbox):
@@ -264,7 +285,8 @@ def make_hk_sy(nrow, ncol, bbox):
 			os.path.join(data_dir, "IGWWaterTableHydraulicConductivity.json"),
 			nrow, ncol,
 			bbox,
-			rasterize_hk_sy
+			rasterize_hk_sy,
+			True
 			) 
 
 	hk_copy = copy.deepcopy(hk_sy_mean)
@@ -282,8 +304,10 @@ def make_hk_sy(nrow, ncol, bbox):
 
 
 def make_strt(nrow, ncol, bbox):
-	# 110.00
-	# 111
+	
+	# get bore level below site
+	# =============================================================================
+	# 110.? and 111.? are Bore level 
 	with open(os.path.join(data_dir, "kisters_sites_with_data.json")) as f:
 		kisters_sites = json.loads(f.read())
 
@@ -300,12 +324,66 @@ def make_strt(nrow, ncol, bbox):
 		
 			with open(os.path.join('clipped_data', variable["file"])) as f:
 				rows = [r for r in csv.DictReader(f)]
-				print rows[0], variable_info["name"], ' - ', variable_info["subdesc"]
-				print time.strptime(rows[-1]["Time"], "%Y%m%d%H%M%S") # "yyyymm22hhiiee" YYYYMMDDhhmmss
-		
-			groundwater_sites.append(feat)
 
-	print len(groundwater_sites)
+			values = [float(r["Value"]) for r in rows]
+			dates = [datetime.datetime.strptime(r["Time"], "%Y%m%d%H%M%S") for r in rows]
+
+			day_dot = datetime.datetime(2008,1,1) # make sure this is before the first day
+			# interp_dates = [datetime.datetime(2010,4,16), datetime.datetime(2013,2,22), datetime.datetime(2014,4,1), datetime.datetime(2014,12,31) ]
+			interp_dates = [datetime.datetime(2015,6,1)]
+			interp_values = np.interp([(d - day_dot).days for d in interp_dates], [(d - day_dot).days for d in dates], values)
+
+			# import matplotlib.pylab as plt
+			# plt.plot(dates, values, '.', alpha=0.2)
+			# plt.plot(interp_dates, interp_values, 'x')
+			# plt.show()
+			# break
+
+			# print rows[0], variable_info["name"], ' - ', variable_info["subdesc"]
+			# print datetime.strptime(rows[-1]["Time"], "%Y%m%d%H%M%S") # "yyyymm22hhiiee" YYYYMMDDhhmmss
+			groundwater_sites.append({
+				"lat": feat["geometry"]["coordinates"][1],
+				"lng": feat["geometry"]["coordinates"][0],
+				"bore level below": interp_values[0]
+				})
+
+	print len(groundwater_sites), "sites"
+	print (groundwater_sites)
+
+	# get elevation at sites
+	# =============================================================================
+	with open(os.path.join(dest_dir, "elevation.json")) as f:
+		elevations = json.loads(f.read())
+
+	delc = elevations["pixelHeight"] # y, lat, nrow, delc
+	delr = elevations["pixelWidth"] # x, lng, ncol, delr
+	cnr = elevations["bottomLeft"]
+
+	z = np.array(elevations["array"])
+	nrow, ncol = z.shape
+	print nrow, ncol
+
+	from scipy import interpolate
+	# x, y = np.mgrid[cnr["lng"]+(0.5)*delr : cnr["lng"]+(ncol-0.5)*delr : ncol*1j , \
+	# 				cnr["lat"]+(0.5)*delc : cnr["lat"]+(nrow-0.5)*delc : nrow*1j]
+	# print x.shape
+	# print y.shape
+	# print z.shape
+	xx = np.linspace(cnr["lng"]+(0.5)*delr, cnr["lng"]+(ncol-0.5)*delr, ncol)
+	yy = np.linspace(cnr["lat"]+(0.5)*delc, cnr["lat"]+(nrow-0.5)*delc, nrow)
+	x, y = np.meshgrid(xx, yy)
+
+	tck = interpolate.bisplrep(x, y, z, s=0)
+
+	spline_znew = interpolate.bisplev([s['lng'] for s in groundwater_sites], [s['lat'] for s in groundwater_sites], tck)
+	print spline_znew
+	# spline_znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
+
+	# rbf = interpolate.Rbf(x, y, z, epsilon=2)
+	# rbf_znew = rbf(xnew, ynew)
+
+
+	# TODO cut up APPT250K_Contours_line into points with elevation value, use for interpolation.
 
 
 
@@ -371,6 +449,7 @@ if __name__ == '__main__':
 	nrow, ncol = (40, 20)
 	
 	# make_dis(nrow, ncol, bbox)
+	# make_elev(nrow, ncol, bbox)
 	# make_ibound(nrow, ncol, bbox)
 	# make_riv(nrow, ncol, bbox)
 	# make_hk_sy(nrow, ncol, bbox)
