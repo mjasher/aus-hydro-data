@@ -56,9 +56,11 @@ etc.
 
 import numpy as np
 import json
+import csv
 from osgeo import ogr, osr, gdal
 import os
 import copy
+import time
 # import flopy
 
 
@@ -279,6 +281,33 @@ def make_hk_sy(nrow, ncol, bbox):
 			f.write(json.dumps(sy_copy))
 
 
+def make_strt(nrow, ncol, bbox):
+	# 110.00
+	# 111
+	with open(os.path.join(data_dir, "kisters_sites_with_data.json")) as f:
+		kisters_sites = json.loads(f.read())
+
+	groundwater_sites = []
+	for feat in kisters_sites["features"]:
+		
+		# groundwater_vars = filter(lambda v: 109. < float(v["code"]) and float(v["code"]) < 112.,  feat["properties"]["variables"])
+		groundwater_vars = filter(lambda v: v["code"] == "111.00",  feat["properties"]["variables"])
+		
+		if len(groundwater_vars) > 0:
+		
+			variable = groundwater_vars[0]
+			variable_info = kisters_sites["properties"]["variables"][variable["code"]]
+		
+			with open(os.path.join('clipped_data', variable["file"])) as f:
+				rows = [r for r in csv.DictReader(f)]
+				print rows[0], variable_info["name"], ' - ', variable_info["subdesc"]
+				print time.strptime(rows[-1]["Time"], "%Y%m%d%H%M%S") # "yyyymm22hhiiee" YYYYMMDDhhmmss
+		
+			groundwater_sites.append(feat)
+
+	print len(groundwater_sites)
+
+
 
 def make_rch(nrow, ncol, bbox):
 
@@ -344,6 +373,7 @@ if __name__ == '__main__':
 	# make_dis(nrow, ncol, bbox)
 	# make_ibound(nrow, ncol, bbox)
 	# make_riv(nrow, ncol, bbox)
-	make_hk_sy(nrow, ncol, bbox)
+	# make_hk_sy(nrow, ncol, bbox)
+	make_strt(nrow, ncol, bbox)
 
 	# test_dis(nrow=80, ncol=40, bounding_box=bbox)
