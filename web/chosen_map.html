@@ -18,9 +18,10 @@
         bottom: 0;
         width: 50%;
     }
+    
     #map-right {
         position: absolute;
-        right:0;
+        right: 0;
         top: 0;
         bottom: 0;
         width: 50%;
@@ -43,7 +44,7 @@
     });
 
     var stamenLayer = L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.png', {
-      attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
+        attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
     });
 
     var map_left = L.map('map-left')
@@ -81,12 +82,10 @@
     var Reds = ["#fff5f0", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"];
 
     d3.json("/clipped_data/AHGFAquiferContour.json", function(data) {
-        var contours = data.features.map(function(d) {
-            return d.properties["ContValue"];
-        });
-
         var contour_color = d3.scale.quantize()
-            .domain(d3.extent(contours))
+            .domain(d3.extent(data.features.map(function(d) {
+                return d.properties["ContValue"];
+            })))
             .range(YlOrRd);
 
         control_left.addOverlay(
@@ -100,14 +99,15 @@
                     }
                 }
             }).addTo(map_left),
-            "Contours"
+            "Aquifer contours"
         )
     });
 
-    d3.json("/raster_data/top.json", function(error, data){new d3_layer(data, "top", control_right, d3.scale.quantize().range(YlOrRd)).addTo(map_right); });
+    d3.json("/raster_data/top.json", function(error, data) {
+        new d3_layer(data, "top", control_right, d3.scale.quantize().range(YlOrRd)).addTo(map_right);
+    });
 
     d3.json("/clipped_data/Campaspe_GCU.json", function(data) {
-
         control_left.addOverlay(
             L.geoJson(data, {
                 onEachFeature: onEachFeature,
@@ -119,12 +119,128 @@
                     }
                 }
             }),
-            "GW Catcment"
+            "GW Catchment"
         )
     });
 
-    d3.json("/raster_data/ibound.json", function(error, data){ var layer = new d3_layer(data, "ibound", control_right, d3.scale.quantize().range(["white", "black"])); map_right.removeLayer(layer); });
+    d3.json("/raster_data/ibound.json", function(error, data) {
+        var layer = new d3_layer(data, "ibound", control_right, d3.scale.quantize().range(["white", "black"]));
+        map_right.removeLayer(layer);
+    });
 
+
+    d3.json("/clipped_data/AHGFNetworkStream.json", function(data) {
+        var river_color = d3.scale.ordinal()
+            .domain(["Minor", "Major"])
+            .range(Blues.slice(-2));
+
+        var river_width = d3.scale.ordinal()
+            .domain(["Minor", "Major"])
+            .range([1, 5]);
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "color": river_color(feature.properties["Hierarchy"]),
+                        "weight": river_width(feature.properties["Hierarchy"]),
+                        "opacity": 1
+                    }
+                }
+            }),
+            "Rivers"
+        )
+    });
+
+    d3.json("/raster_data/riv.json", function(data) {
+        var layer = new d3_layer(data, "riv", control_right, d3.scale.quantize().range(Blues));
+        map_right.removeLayer(layer);
+    });
+
+
+
+    d3.json('/clipped_data/APPT250K_Contours_line.json', function(data) {
+        var contours = data.features.map(function(d) {
+            return d.properties["ELEVATION"];
+        }); //.sort(function(a,b){ return a>b;});
+
+        var contour_color = d3.scale.quantize()
+            .domain(d3.extent(contours))
+            .range(YlOrRd);
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "color": contour_color(feature.properties["ELEVATION"]),
+                        "weight": 1,
+                        "opacity": 1
+                    }
+                }
+            }),
+            "Elevation"
+        )
+    });
+
+
+    d3.json('/clipped_data/IGWWaterTableHydraulicConductivity.json', function(data) {
+
+        var hk_color = d3.scale.quantize()
+            .domain(d3.extent(data.features.map(function(d) {
+                return d.properties["HydKValue"];
+            })))
+            .range(Reds);
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "fillColor": hk_color(feature.properties["HydKValue"]),
+                        "fillOpacity": 1.,
+                        "color": hk_color(feature.properties["HydKValue"]),
+                        "opacity": 1.,
+                        "weight": 0.1
+                    }
+                }
+            }),
+            "HydKValue"
+        )
+
+        var sy_color = d3.scale.quantize()
+            .domain(d3.extent(data.features.map(function(d) {
+                return d.properties["SpecYield"];
+            })))
+            .range(Reds);
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+                style: function(feature) {
+                    return {
+                        "fillColor": sy_color(feature.properties["SpecYield"]),
+                        "fillOpacity": 1.,
+                        "color": hk_color(feature.properties["SpecYield"]),
+                        "opacity": 1.,
+                        "weight": 0.1
+                    }
+                }
+            }),
+            "SpecYield"
+        )
+
+    });
+
+    d3.json("/raster_data/hk_mean.json", function(data) {
+        var layer = new d3_layer(data, "hk", control_right, d3.scale.log().range([Reds[0], Reds[Reds.length-1]]));
+        map_right.removeLayer(layer);
+    });
+    d3.json("/raster_data/sy_mean.json", function(data) {
+        var layer = new d3_layer(data, "sy", control_right, d3.scale.linear().range([Reds[0], Reds[Reds.length-1]]));
+        map_right.removeLayer(layer);
+    });
 
     </script>
 </body>
