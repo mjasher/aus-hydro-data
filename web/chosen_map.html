@@ -234,17 +234,31 @@
     });
 
     d3.json("/raster_data/hk_mean.json", function(data) {
-        var layer = new d3_layer(data, "hk", control_right, d3.scale.log().range([Reds[0], Reds[Reds.length-1]]));
+        var layer = new d3_layer(data, "hk", control_right, d3.scale.log().range([Reds[0], Reds[Reds.length - 1]]));
         map_right.removeLayer(layer);
     });
     d3.json("/raster_data/sy_mean.json", function(data) {
-        var layer = new d3_layer(data, "sy", control_right, d3.scale.linear().range([Reds[0], Reds[Reds.length-1]]));
+        var layer = new d3_layer(data, "sy", control_right, d3.scale.linear().range([Reds[0], Reds[Reds.length - 1]]));
         map_right.removeLayer(layer);
     });
     d3.json("/raster_data/elevation.json", function(data) {
         var layer = new d3_layer(data, "elevation", control_right, d3.scale.quantize().range(YlOrRd));
         map_right.removeLayer(layer);
     });
+
+
+    d3.json('/raster_data/bore_elevations.json', function(data) {
+
+        control_left.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+            }),
+            "Bores"
+        )
+    });
+
+
+
 
     </script>
 </body>

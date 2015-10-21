@@ -30,6 +30,9 @@ Geology data from  GA [Surface Geology of Australia 1:1 million scale dataset 20
 Faults: ShearDisplacementLines1M, GeologicUnitPolygons1M.
 ``` fetch_data.ga_geology ```
 
+Aquifers from the [Victorian Water Asset Database (VWAD) - AQUIFER_LAYER](https://www.data.vic.gov.au/data/dataset/victorian-water-asset-database-vwad-aquifer_layer)
+``` fetch_data.vwad ```
+
 
 Other potential sources of data
 --------------------------------------------
@@ -72,10 +75,10 @@ if __name__ == '__main__':
 	
 	# clipping_shape()
 	
-	from fetch_data import kisters_hydrology, geofabric, mapconnect, bom, ga_geology
+	from fetch_data import kisters_hydrology, geofabric, mapconnect, bom, ga_geology, vwad
 
 	# water data from Vic. state government
-	kisters_hydrology.run(bounding_box, destination_dir)
+	# kisters_hydrology.run(bounding_box, destination_dir)
 	
 	# geology from BOM geofabric
 	# geofabric.run(bounding_box, destination_dir)
@@ -89,7 +92,11 @@ if __name__ == '__main__':
 	# faults from GA
 	# ga_geology.run(bounding_box, destination_dir)
 
+	# aquifers from data.vic.gov.au
+	vwad.run(bounding_box, destination_dir)
 
+	# google_elevation
+	# bulk bores vic_water_bores
 
 
 """

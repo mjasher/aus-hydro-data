@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title></title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <link href='third/leaflet.css' rel='stylesheet' />
+    <style>
+    body {
+        margin: 0;
+        padding: 0;
+        border: 0;
+        overflow: hidden;
+    }
+    
+    #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        height: 70%;
+    }
+    
+    #div-right {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+        height: 30%;
+    }
+    /*d3 multi series line */
+    
+    body {
+        font: 10px sans-serif;
+    }
+    
+    .axis path,
+    .axis line {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+    }
+    
+    .x.axis path {
+        display: none;
+    }
+    
+    .line {
+        fill: none;
+        stroke: steelblue;
+        stroke-width: 1.5px;
+    }
+
+    .active path{
+        stroke-width: 0;
+    }
+
+    .legend.active{
+        opacity: 0.4;
+    }
+    
+
+    </style>
+</head>
+
+<body>
+    <div id='map'></div>
+    <div id='div-right'></div>
+    <script src='third/leaflet.js'></script>
+    <script src='third/L.Map.Sync.js'></script>
+    <script src='third/d3.min.js'></script>
+    <script src='d3_leaflet.js'></script>
+    <script>
+    L.accessToken = 'pk.eyJ1IjoibWphc2hlciIsImEiOiJjaWZpcmJqamJic2F5c2RrbnZ1ZTR1OWE2In0.GbZuc7sf-iQae4xTsYbTDA';
+
+    var mapboxTiles = L.tileLayer('https://api.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + L.accessToken, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+
+    var mapboxSatellite = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.png?access_token=' + L.accessToken, {
+        attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
+    });
+
+    var map = L.map('map')
+        .addLayer(mapboxTiles)
+        .setView([-36.601152, 144.6076095], 9);
+
+    var layer_control = L.control.layers({
+        "Satellite": mapboxSatellite,
+        "Map": mapboxTiles
+    }).addTo(map);
+
+    L.control.scale().addTo(map);
+
+    function onEachFeature(feature, layer) {
+        var popupContent = '<div class="popup">';
+        if (feature.properties) {
+            for (var k in feature.properties) {
+                var v = feature.properties[k];
+                popupContent += k + ': ' + v + '<br />';
+            }
+        }
+        popupContent += '</div>';
+
+        layer.bindPopup(popupContent);
+    }
+
+    var YlOrRd = ["#ffffcc", "#ffeda0", "#fed976", "#feb24c", "#fd8d3c", "#fc4e2a", "#e31a1c", "#bd0026", "#800026"];
+    var Blues = ["#f7fbff", "#deebf7", "#c6dbef", "#9ecae1", "#6baed6", "#4292c6", "#2171b5", "#08519c", "#08306b"];
+    var Greens = ["#f7fcf5", "#e5f5e0", "#c7e9c0", "#a1d99b", "#74c476", "#41ab5d", "#238b45", "#006d2c", "#00441b"];
+    var Reds = ["#fff5f0", "#fee0d2", "#fcbba1", "#fc9272", "#fb6a4a", "#ef3b2c", "#cb181d", "#a50f15", "#67000d"];
+
+
+    // d3.json('/raster_data/bore_elevations.json', function(data) {
+    d3.json('/clipped_data/vic_water_bores.json', function(data) {
+
+        layer_control.addOverlay(
+            L.geoJson(data, {
+                onEachFeature: onEachFeature,
+            }).addTo(map),
+            "Bores"
+        )
+        plot_bores(data, "#div-right");
+
+    });
+
+
+    function plot_bores(geo_data, selector) {
+
+        var el = d3.select(selector);
+
+        var margin = {
+                top: 20,
+                right: 180,
+                bottom: 30,
+                left: 50
+            },
+            width = el.node().clientWidth - margin.left - margin.right,
+            height = el.node().clientHeight - margin.top - margin.bottom;
+
+        var parseDate = d3.time.format("%Y%m%d%H%M%S").parse;
+
+        var x = d3.time.scale()
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .range([height, 0]);
+
+        var color = d3.scale.category10();
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom");
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left");
+
+        var line = d3.svg.line()
+            .interpolate("basis")
+            .x(function(d) {
+                return x(d.date);
+            })
+            .y(function(d) {
+                return y(d.temperature);
+            });
+
+        var svg = el.append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var stations = geo_data["features"].map(function(feature) {
+            return feature["properties"]["station"];
+        });
+
+
+        color.domain(stations);
+
+        var cities = geo_data["features"].map(function(feature) {
+            return {
+                name: feature["properties"]["station"],
+                // values: feature["properties"]["values"].map(function(value, i) {
+                //     return {
+                //         date: parseDate(feature["properties"]["dates"][i]),
+                //         temperature: feature["properties"]["elevation"] - value,
+                //     }
+                // })
+                values: feature["properties"]["RWL_mAHD"].map(function(value, i) {
+                    return {
+                        date: parseDate(feature["properties"]["date"][i]),
+                        temperature: value,
+                    }
+                })
+            }
+        });
+
+        x.domain([
+            d3.min(cities, function(c) {
+                return d3.min(c.values, function(v) {
+                    return v.date;
+                });
+            }),
+            d3.max(cities, function(c) {
+                return d3.max(c.values, function(v) {
+                    return v.date;
+                });
+            })
+        ]);
+
+        y.domain([70, 150]);
+
+        svg.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 6)
+            .attr("dy", ".71em")
+            .style("text-anchor", "end")
+            .text("Temperature (ºF)");
+
+        var city = svg.selectAll(".city")
+            .data(cities)
+            .enter().append("g")
+            .attr("class", "city");
+
+        city.append("path")
+            .attr("class", "line")
+            .attr("d", function(d) {
+                return line(d.values);
+            })
+            .style("stroke", function(d) {
+                return color(d.name);
+            });
+
+        // city.append("text")
+        //     .datum(function(d) {
+        //         return {
+        //             name: d.name,
+        //             value: d.values[d.values.length - 1]
+        //         };
+        //     })
+        //     .attr("transform", function(d) {
+        //         return "translate(" + x(d.value.date) + "," + y(d.value.temperature) + ")";
+        //     })
+        //     .attr("x", 3)
+        //     .attr("dy", ".35em")
+        //     .text(function(d) {
+        //         return d.name;
+        //     });
+
+        var legend = svg.selectAll(".legend")
+            .data(cities)
+            .enter()
+            .append("g")
+            .attr("class", "legend")
+            .attr("transform", function(d, i) {
+                return "translate(" + (width + 30) + "," + (i * 10) + ")"
+            })
+            .on('click', function(d, i) {
+
+                d3.select(city[0][i]).classed("active", function(d, i) {
+                    return !d3.select(this).classed("active");
+                });
+
+                d3.select(this).classed("active", function(d, i) {
+                    return !d3.select(this).classed("active");
+                });
+
+
+            })
+
+        legend.append('rect')
+            .attr('width', 10)
+            .attr('height', 10)
+            .style('fill', function(d) {
+                return color(d.name);
+            });
+
+        legend.append('text')
+            .text(function(d) {
+                return d.name;
+            })
+            .attr("transform", "translate(10,10)");
+
+
+
+
+    }
+    </script>
+</body>
+
+</html>

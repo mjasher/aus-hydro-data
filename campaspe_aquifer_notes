@@ -1,0 +1,131 @@
+
+'''
+========================================================
+Data provenance
+========================================================
+
+
+Data from 
+http://www.depi.vic.gov.au/water/groundwater/understanding-groundwater
+========================================================
+
+
+Average thickness:
+"Quaternary Aquifer (QA)": 11
+"Upper Tertiary/Quaternary Basalts (UTQB)": 34
+"Upper Tertiary/Quaternary Aquifer (UTQA)": 35
+"Upper Tertiary Aquifer - Marine (UTAM)": 46
+"Upper Tertiary Aquifer - Fluvial (UTAF)": 22
+"Upper Mid-tertiary Aquifer (UMTA)": 98
+"Lower Mid-tertiary Aquifer (LMTA)": 44
+"Lower Mid-tertiary Basalts (LTB)": "LTBA - 35, LTBB - 78"
+"Lower Tertiary Aquifer (LTA)": 136
+"Basement (Cretaceous/Permian Sediments and Paleozoic Bedrock)": "CPS - 298 BSE - UNK (lower limit unknown)"
+
+Data from
+http://www.depi.vic.gov.au/water/groundwater/groundwater-resource-reports
+--> Campaspe http://gwv.cloudapp.net/aquiferservice/Report/aquiferreport201510170111183048879.html
+========================================================
+
+"Groundwater Layers (Aquifers and Aquitards)": "Depth Below Surface(m)"
+----------------------------------------
+"UTQA Upper Tertiary / Quaternary Aquifer": 0
+"layered clay, sands and silt": 63
+"UTAF Upper Tertiary Aquifer (fluvial)": 63
+"sand, gravel and clay": 85
+"LTA Lower Tertiary Aquifer": 85
+"sand, gravel, clay and silt, minor coal": 122
+"BSE Mesozoic and Palaeozoic Bedrock (basement)": 122
+"sedimentary (fractured rock): Sandstone, siltstone, mudstone, shale. Igneous (fractured rock): includes volcanics, granites, granodiorites.": 322
+
+"Groundwater Management Unit (GMU)": "(GMU) Depth Below Surface(m)"
+----------------------------------------
+"Shepparton GMA Top": 0
+"Shepparton GMA Bottom": 25
+"Lower Campaspe Valley WSPA Top": 25
+"Lower Campaspe Valley WSPA Bottom": 322
+
+
+"Groundwater Salinity (mg/L)"
+1001-3500
+1001-3500
+1001-3500
+1001-3500
+
+"PCV (ML/yr)" 
+Unknown
+55,875
+
+
+http://www.bom.gov.au/water/nwa/2010/mdb/notes/13-2.html
+========================================================
+"Uncertainty is ungraded. It is currently not feasible to estimate the uncertainty of modelled groundwater discharge to connected surface water from outputs of a MODFLOW groundwater model."
+
+
+Data from:
+http://www.clw.csiro.au/publications/waterforahealthycountry/mdbsy/technical/F-SouthernRPGWModelCalibration.pdf
+========================================================
+Bore and river gauge data and details
+
+
+"
+The Campaspe catchment contains three aquifer units: the porous Deep Lead (Calivil Formation and Renmark Group) aquifer, the Shepparton Formation and the fractured Coliban Basalt. The Shepparton Formation is widespread across the area except where bedrock outcrops. Hydraulic conductivities and specific yields for the Shepparton Formation are low and thought to range between 0.5 to 8 m/day and 0.01 to 0.02, respectively. Salinity for the Shepparton is less than 1,000 mg/L TDS near the Campaspe River; 3,000 mg/L TDS near Rochester River; and greater than 13,000 mg/L TDS elsewhere (Hyder, 2006). The main Deep Lead commences near Axedale and becomes progressively deeper to the north. The Deep Lead has higher hydraulic conductivities which also increase towards the north, up to 100 m/day in the south and 185 m/day in the north (Hyder, 2006). Salinity within the Deep Lead aquifer is higher in the north than the south and tends to vary between 600 and 4200 mg/L TDS. The Coliban Basalt occurs in the south approximately from Lake Eppalock to Ellmore following the Campaspe River valley.
+
+Groundwater levels in the Deep Lead typically fluctuate greatly (up to 20 m) in response to seasonal pumping. However, a steady drawdown has been observed since the mid-1990s, in response to increased extractions and below-average rainfall in the region (Hyder, 2006). Typically drawdowns are also observed in the Shepparton Formation. Recharge to the Shepparton Formation is typically via rainfall, irrigation or river leakage. Recharge to groundwater from irrigation has been estimated at over 100 mm/year in intensively developed areas such as the Campaspe Irrigation District and the Rochester Irrigation Area (Hyder, 2006). River leakage is estimated to be highly variable along the length of the Campaspe due to the highly variable nature of the Upper Shepparton. Recharge to the Deep Lead occurs mainly via leakage from the overlying Shepparton Formation. Further recharge may also be sourced from the river where it is underlain by sandier material giving it a good hydraulic connection to the Calivil. An average of 15,557 ML of groundwater from the Deep Lead aquifer is thought to be used each year. Since 2000 the usage has ranged between 23,000 and 30,000 ML/year in the Campaspe Deep Lead WSPA. This usage is typically focused in the south. In Ellesmere GMA, only small volumes are extracted. However, the volumes have increased from around 500 ML/year in the 1990s to 3,200 ML/year in 2005/06.
+"
+
+
+http://www.g-mwater.com.au/water-resources/ground-water/groundwater_management/lowercampaspevalleywspa
+========================================================
+Four zones with data (Barnadown, Elmore-Rochester, Bamawm and Echucha)
+
+Geology:
+Coliban Basalt, Shepparton Formation sands, more clay north of [probably WARANGA WESTERN] chanel
+Deep leads
+Bedrock
+
+
+
+
+Looking at 
+Nov_2013_-_Lower_Campaspe_Valley_WSPA_Plan_A4_FINAL-fixed_for_web.pdf
+and the annual report (30_Sept_2015-LOWER_CAMPASPE_VALLEY_WSPA_ANNUAL_REPORT_-_2014_15_-_SIGNED.pdf) figure 1.
+and http://www.g-mwater.com.au/downloads/Groundwater/2843217_v8_REPORT_INTERIM_MANAGEMENT_ARRRANGEMEN.pdf
+------------------------------------------
+
+Thresholds for allocations.
+
+LICENCES for each zone known
+important_bores = {
+	"82999": "Barnadown zone, Coliban Basalt, Shepparton Formation sands, stable",
+	#
+	"89580": "Elmore-Rochester zone, Shepparton Fm sands, 38.48-50m, well connected",
+	"89574": "Elmore-Rochester zone, Deep Lead, 84-88m",
+	#
+	"47254": "Bamawm zone, Shepparton Fm sands/clays, 25-26m, poorly connected north of Waranga Western Channel",
+	"47253": "Bamawm zone, Deep Lead, 123-129m",
+	#
+	"79329": "Echucha zone, Shepparton Fm sands/clays?, 6m",
+	"79324": "Echucha zone, Deep Lead?, 78-84m, AND for seasonal allocations of Elmore-Rochester, Bamawm and Euchuca zones",
+	#
+	"62589": "for seasonal allocations of Barnadown zone",
+}
+
+
+Lists salinity measuring bores and other hydrographs!
+
+NAME: MURRAY RIVER
+Name: WARANGA WESTERN CHANNEL
+Thounson Rd
+Euchuca Mitiamo Rd
+Parsons Rd
+Bendigo - Tennyson Road
+Waranga Western Channel
+Echuca - Mitiamo Road
+
+1991 FEM model:
+========================================================
+"Estimating groundwater recharge using an integrated surface and groundwater modelling approach"
+http://www.sciencedirect.com/science/article/pii/002216949290216I
+
+'''

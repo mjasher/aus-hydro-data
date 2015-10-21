@@ -62,6 +62,7 @@ import os
 import copy
 import datetime
 # import flopy
+import matplotlib.pylab as plt
 
 
 
@@ -303,6 +304,7 @@ def make_hk_sy(nrow, ncol, bbox):
 			f.write(json.dumps(sy_copy))
 
 
+
 def make_strt(nrow, ncol, bbox):
 	
 	# get bore level below site
@@ -333,55 +335,89 @@ def make_strt(nrow, ncol, bbox):
 			interp_dates = [datetime.datetime(2015,6,1)]
 			interp_values = np.interp([(d - day_dot).days for d in interp_dates], [(d - day_dot).days for d in dates], values)
 
-			# import matplotlib.pylab as plt
-			# plt.plot(dates, values, '.', alpha=0.2)
-			# plt.plot(interp_dates, interp_values, 'x')
-			# plt.show()
-			# break
 
 			# print rows[0], variable_info["name"], ' - ', variable_info["subdesc"]
 			# print datetime.strptime(rows[-1]["Time"], "%Y%m%d%H%M%S") # "yyyymm22hhiiee" YYYYMMDDhhmmss
 			groundwater_sites.append({
 				"lat": feat["geometry"]["coordinates"][1],
 				"lng": feat["geometry"]["coordinates"][0],
-				"bore level below": interp_values[0]
+				'values': values,
+				'dates': [r["Time"] for r in rows],
+				"bore level below": interp_values[0],
+				"station": feat["properties"]["station"],
 				})
 
+	# 		plt.plot(dates, values, alpha=0.7, label=feat["properties"]["station"])
+	# plt.legend()
+	# plt.show()
+
+	'''
+	yearly small around 20, WRK953020,WRK953014, WRK953015 ]
+	[ yearly big around 15-30 110152, 89586]
+	 [ small around 15 WRK953018, WRK953019]
+	 [ very small around 0, WRK953017, 89579
+	 10-15 110151, 110153 ( 110151 much more variation sometimes with big (110152, 89586))
+
+	WRK953014
+	WRK953015
+	WRK953020
+
+	110152
+	89586
+
+	110151
+
+	WRK953018
+	WRK953019
+
+	110153
+
+	WRK953017
+	89579
+
+	JUNK
+	WRK953016
+	WRK953021
+
+	'''
+
 	print len(groundwater_sites), "sites"
-	print (groundwater_sites)
+
+	import fetch_data.google_elevation
+	print fetch_data.google_elevation.get_elevations(groundwater_sites, dest_dir)
+
 
 	# get elevation at sites
 	# =============================================================================
-	with open(os.path.join(dest_dir, "elevation.json")) as f:
-		elevations = json.loads(f.read())
+	# with open(os.path.join(dest_dir, "elevation.json")) as f:
+	# 	elevations = json.loads(f.read())
 
-	delc = elevations["pixelHeight"] # y, lat, nrow, delc
-	delr = elevations["pixelWidth"] # x, lng, ncol, delr
-	cnr = elevations["bottomLeft"]
+	# delc = elevations["pixelHeight"] # y, lat, nrow, delc
+	# delr = elevations["pixelWidth"] # x, lng, ncol, delr
+	# cnr = elevations["bottomLeft"]
 
-	z = np.array(elevations["array"])
-	nrow, ncol = z.shape
-	print nrow, ncol
+	# z = np.array(elevations["array"])
+	# nrow, ncol = z.shape
+	# print nrow, ncol
 
-	from scipy import interpolate
-	# x, y = np.mgrid[cnr["lng"]+(0.5)*delr : cnr["lng"]+(ncol-0.5)*delr : ncol*1j , \
-	# 				cnr["lat"]+(0.5)*delc : cnr["lat"]+(nrow-0.5)*delc : nrow*1j]
-	# print x.shape
-	# print y.shape
-	# print z.shape
-	xx = np.linspace(cnr["lng"]+(0.5)*delr, cnr["lng"]+(ncol-0.5)*delr, ncol)
-	yy = np.linspace(cnr["lat"]+(0.5)*delc, cnr["lat"]+(nrow-0.5)*delc, nrow)
-	x, y = np.meshgrid(xx, yy)
+	# from scipy import interpolate
+	# # x, y = np.mgrid[cnr["lng"]+(0.5)*delr : cnr["lng"]+(ncol-0.5)*delr : ncol*1j , \
+	# # 				cnr["lat"]+(0.5)*delc : cnr["lat"]+(nrow-0.5)*delc : nrow*1j]
+	# # print x.shape
+	# # print y.shape
+	# # print z.shape
+	# xx = np.linspace(cnr["lng"]+(0.5)*delr, cnr["lng"]+(ncol-0.5)*delr, ncol)
+	# yy = np.linspace(cnr["lat"]+(0.5)*delc, cnr["lat"]+(nrow-0.5)*delc, nrow)
+	# x, y = np.meshgrid(xx, yy)
 
-	tck = interpolate.bisplrep(x, y, z, s=0)
+	# tck = interpolate.bisplrep(x, y, z, s=0)
 
-	spline_znew = interpolate.bisplev([s['lng'] for s in groundwater_sites], [s['lat'] for s in groundwater_sites], tck)
-	print spline_znew
-	# spline_znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
+	# spline_znew = interpolate.bisplev([s['lng'] for s in groundwater_sites], [s['lat'] for s in groundwater_sites], tck)
+	# print spline_znew
+	# # spline_znew = interpolate.bisplev(xnew[:,0], ynew[0,:], tck)
 
-	# rbf = interpolate.Rbf(x, y, z, epsilon=2)
-	# rbf_znew = rbf(xnew, ynew)
-
+	# # rbf = interpolate.Rbf(x, y, z, epsilon=2)
+	# # rbf_znew = rbf(xnew, ynew)
 
 	# TODO cut up APPT250K_Contours_line into points with elevation value, use for interpolation.
 

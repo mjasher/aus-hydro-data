@@ -28,6 +28,15 @@
     <script>
     L.accessToken = 'pk.eyJ1IjoibWphc2hlciIsImEiOiJjaWZpcmJqamJic2F5c2RrbnZ1ZTR1OWE2In0.GbZuc7sf-iQae4xTsYbTDA';
 
+
+    var Stamen_Toner = L.tileLayer('http://stamen-tiles-{s}.a.ssl.fastly.net/toner/{z}/{x}/{y}.{ext}', {
+        attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a> &mdash; Map data &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        subdomains: 'abcd',
+        minZoom: 0,
+        maxZoom: 20,
+        ext: 'png'
+    });
+
     var mapboxTiles = L.tileLayer('https://api.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.png?access_token=' + L.accessToken, {
         attribution: '<a href="http://www.mapbox.com/about/maps/" target="_blank">Terms &amp; Feedback</a>'
     });
@@ -40,7 +49,7 @@
         .addLayer(mapboxTiles)
         .setView([-36.601152, 144.6076095], 9);
 
-    var layer_control = L.control.layers({"Satellite": mapboxSatellite, "Map": mapboxTiles}).addTo(map);
+    var layer_control = L.control.layers({"Toner": Stamen_Toner, "Satellite": mapboxSatellite, "Map": mapboxTiles}).addTo(map);
 
     L.control.scale().addTo(map);
 
@@ -59,6 +68,15 @@
 
 
     var layers = [
+        "osm/points",
+        "osm/lines",
+        "osm/multilinestrings",
+        "osm/multipolygons",
+        "osm/other_relations",
+        //
+        "deepld250_polygon",
+        "VWAD_AQ",
+        //
         "Campaspe_GCU",
         //
         "ShearDisplacementLines1M",
@@ -121,6 +139,7 @@
         //
         "kisters_sites_with_data",
         "bom_sites_with_data",
+        "bore_elevations"
     ];
 
     // sites.geo.json
