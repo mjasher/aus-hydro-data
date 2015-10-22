@@ -74,10 +74,10 @@ def run(bounding_box, destination_dir):
 
 	file_name = "downloaded_data/SH_Catchments_GDB/SH_Catchments.gdb"
 	layers =[
-	"NCBPfafstetter", 
-	"NCBLevel2DrainageBasinGroup", 
-	"NCBLevel1DrainageDivision", 
-	"AHGFCatchment", 
+		"NCBPfafstetter", 
+		"NCBLevel2DrainageBasinGroup", 
+		"NCBLevel1DrainageDivision", 
+		"AHGFCatchment", 
 	]
 	gdb_to_geojson(file_name, destination_dir, layers, bounding_box)
 

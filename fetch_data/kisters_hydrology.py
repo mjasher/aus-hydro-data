@@ -14,6 +14,8 @@ Scrape surface and ground water data from Kister's API
 	Note: 
 		API URLS will differ slightly from above
 
+Kister's API documentation (http://kisters.com.au/doco/hydllp.htm)
+
 michael.james.asher@gmail.com
 October 2015
 ========================================================

@@ -6,6 +6,9 @@ import os
 import csv
 import json
 import zipfile
+import numpy
+import datetime
+import utils
 
 """
 ========================================================
@@ -135,6 +138,82 @@ def bom_ts_to_geojson(site_ids, site_locations, zipped_sites_dir, destination_di
 
 	with open(os.path.join(destination_dir, 'bom_sites_with_data.json'), 'w') as f:
 		f.write(json.dumps(sites_geojson))
+
+
+
+"""
+	* list of sites [manually]( http://www.bom.gov.au/climate/data ) or
+ 	* ftp://ftp.bom.gov.au/anon2/home/ncc/metadata/sitelists/stations.zip -> stations.txt
+"""
+def closest_first_bom(all_bom_sites_file, chosen_lat, chosen_lng, chosen_start):
+
+	site_ids = []
+	site_locations = []
+	site_distances = []
+	site_names = []
+	
+	with open(all_bom_sites_file) as f:
+		rows = [r for r in f]
+	
+	for row in rows[4:-8]:
+
+		site_id = row[0:8].strip()
+		site_name = row[14:55].strip()
+		start = int(row[55:63])
+		end = row[63:71].strip()
+		lat = float(row[71:80])
+		lng = float(row[80:90])
+
+		if start < chosen_start.year and end == '..':
+			site_ids.append(site_id)
+			site_names.append(site_name)
+			site_locations.append({"lat": lat, "lng": lng})
+			site_distances.append(numpy.sqrt((chosen_lat-lat)**2 + (chosen_lng-lng)**2))
+
+	site_distances = numpy.array(site_distances) 
+	site_locations = numpy.array(site_locations)
+	site_ids = numpy.array(site_ids)
+	site_names = numpy.array(site_names)
+
+	# we could do weighted average thingo
+	sorted_i = numpy.argsort(site_distances)
+	
+	return site_names[sorted_i], site_ids[sorted_i], site_locations[sorted_i]
+
+
+"""
+For given BOM site ID, returns { obs_code: {"type": obs_type, "dates": dates, "values": values} }
+
+TODO download if not alread in zipped_sites_dir
+"""
+def get_bom_climate(zipped_sites_dir, chosen_id):
+	
+	bom_re = re.compile('(\d{6})_(\d{3}).zip')
+
+	zipped_files = [f for f in os.listdir(zipped_sites_dir) if bom_re.match(f)]
+
+	climate_data = {}
+
+	for zipped_f in zipped_files:
+		site_id = bom_re.match(zipped_f).group(1)
+		obs_code = bom_re.match(zipped_f).group(2)
+		obs_type = bom_obs_types[obs_code]
+
+		if site_id == chosen_id:
+
+			archive = zipfile.ZipFile(os.path.join(zipped_sites_dir, zipped_f))
+			csvfile = filter(lambda filename: filename.endswith(".csv"), archive.namelist())[0]
+			reader = csv.DictReader(archive.open(csvfile))
+			raw_rows = [row	for row in reader]
+			# dates = [row["Year"]+"-"+row["Month"]+"-"+row["Day"] for row in raw_rows]
+			dates = numpy.array([datetime.datetime(int(row["Year"]), int(row["Month"]), int(row["Day"])) for row in raw_rows])
+			values = numpy.array([utils.as_float(row[obs_type]) for row in raw_rows])
+
+			climate_data[obs_code] = {"type": obs_type, "dates": dates, "values": values}
+
+	return climate_data
+		# site_locations[site_ids.index(site_id)]
+
 
 
 

@@ -1,0 +1,72 @@
+
+Surface water
+========================================================
+141.00 {u'units': u'megalitres/day', u'variable': u'141.00', u'name': u'Stream Discharge (Ml/d)', u'subdesc': u'Available for release', u'datasource': u'ACOPY'}
+
+100.00 {u'units': u'metres', u'variable': u'100.00', u'name': u'Stream Water Level (m)', u'subdesc': u'Available for release', u'datasource': u'ACOPY'}
+
+
+141.50 mean daily
+
+
+
+
+Lake Epalock
+
+Waranga Basis and chanel
+
+FOR MAR 	http://www.channelseepage.org.au/9_2_waranga.html
+
+1.
+405230 CORNELLA CREEK @ COLBINABBIN
+2. 
+outflow from eppalock
+	406207 CAMPASPE RIVER @ EPPALOCK
+	or
+	406225 CAMPASPE RIVER AT LAKE EPPALOCK (OLET MEAS. WEIR)
+	or 
+	406219 CAMPASPE RIVER @ LAKE EPPALOCK (HEAD GAUGE)
+
+next is
+	406201 CAMPASPE RIVER @ BARNADOWN
+but other creeks enter before then
+possibly 
+	406214 AXE CREEK @ LONGLEA
+
+then enters
+	406224 MOUNT PLEASANT CREEK @ RUNNYMEDE
+
+then 
+	406218 CAMPASPE RIVER @ CAMPASPE WEIR (HEAD GAUGE)
+then
+	406275 CAMPASPE RIVER @ BURNEWANG-BONN ROAD
+
+then at drain
+	406202 CAMPASPE RIVER @ ROCHESTER D/S WARANGA WESTERN CH SYPHN
+	406764 CAMPASPE DRAIN NO 5 @ OUTFALL
+nearby drains enter? exit? cross?
+	406766 CAMPASPE DR NO 4 U/S NORTHERN HIGHWAY
+	406744 BAMAWM DRAIN NO.3 EXTENSION @ ODONNEL ROAD
+
+then enters ? 
+	406264 MILLEWA CREEK @ NORTHERN HIGHWAY ECHUCA
+
+far enter? exit? irrelevant?
+	406759 ROCHESTER NO 14 OUTFALL @ COCKBILL ROAD
+
+then 
+	406276 CAMPASPE RIVER @ FEHRINGS LANE
+	406265 CAMPASPE RIVER @ ECHUCA
+
+probably also relevant
+	409200 MURRAY RIVER @ ECHUCA
+
+etc.
+
+chanel head
+	405705 WARANGA WESTERN CHANNEL @ 0 MILE 40 CHAIN STRUCTURE
+enters?, crosses? at weir
+	405229 WANALTA CREEK @ WANALTA
+crosses?
+	405230 CORNELLA CREEK @ COLBINABBIN
+
