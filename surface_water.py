@@ -121,7 +121,7 @@ def test_site():
 	dir_name = "downloaded_data/data.water.vic/download.20151022110838/"
 	site_details, data_types_values = read_bulk_downloaded_sw_file(dir_name, site_id, data_types)
 
-	a_i, b_i = utils.intersection_indices(data_types_values[0]["dates"], dates)
+	a_i, b_i = utils.intersection_indices([data_types_values[0]["dates"], dates])
 	assert numpy.allclose( data_types_values[0]["data"][a_i], levels[b_i] )
 
 	print site_details
@@ -131,7 +131,19 @@ def test_site():
 	plt.show()
 
 
+def closest_obs(obs_code, closest_names, closest_ids, closest_locations, bom_obs_types):
+	for closest_i in range(len(closest_names)):
+		climate_data = get_bom_climate(zipped_sites_dir, closest_ids[closest_i])
+		if obs_code in climate_data and \
+			(climate_data[obs_code]["dates"][0] - dates[0]).days < 50 and \
+			(dates[-1] - climate_data[obs_code]["dates"][-1]).days < 50:
 
+			closest_dates = climate_data[obs_code]["dates"]
+			closest_data = utils.interpolate(climate_data[obs_code]["values"]) 
+			print "closest", bom_obs_types[obs_code], closest_names[closest_i], closest_ids[closest_i], closest_locations[closest_i]
+			return closest_dates, closest_data
+	print "NO closest", bom_obs_types[obs_code]
+	return [], []
 
 if __name__ == '__main__':
 	# test_site()
@@ -149,38 +161,31 @@ if __name__ == '__main__':
 	# TODO could use geofabric AHGFCatchment to find center of catchment 
 
 	lat, lng = (float(site_details["Latitude"]), float(site_details["Longitude"]))
-	start = dates[0]
-	end = dates[-1]
-	print "SITE", lat, lng, start
-	closest_names, closest_ids, closest_locations = closest_first_bom(all_bom_sites_file, lat, lng, start)
+	print "SITE", lat, lng, dates[[0,-1]]
+	closest_names, closest_ids, closest_locations = closest_first_bom(all_bom_sites_file, lat, lng, dates[0])
 
-	for closest_i in range(len(closest_names)):
-		climate_data = get_bom_climate(zipped_sites_dir, closest_ids[closest_i])
-		# TODO perhaps we could build a continuous timeseries from closer stations
-		if '122' in climate_data and \
-			'123' in climate_data and \
-			climate_data['122']["dates"][0] < start and \
-			numpy.abs((climate_data['122']["dates"][-1] - end).days) < 50:
+	closest_rain_dates, closest_rain_data = closest_obs('136', closest_names, closest_ids, closest_locations, bom_obs_types)	
+	closest_max_temp_dates, closest_max_temp_data = closest_obs('123', closest_names, closest_ids, closest_locations, bom_obs_types)	
+	closest_min_temp_dates, closest_min_temp_data = closest_obs('122', closest_names, closest_ids, closest_locations, bom_obs_types)	
 
-			i_122, i_123 = utils.intersection_indices(climate_data['122']["dates"], climate_data['123']["dates"])
-			assert numpy.all(climate_data['122']["dates"][i_122] == climate_data['123']["dates"][i_123])
+	multi_names = ["flows", "closest_min_temp", "closest_max_temp", "closest_rain"]
+	multi_dates = [dates, closest_min_temp_dates, closest_max_temp_dates, closest_rain_dates]
+	multi_series = [flows, closest_min_temp_data, closest_max_temp_data, closest_rain_data]
+	intersection_i = utils.intersection_indices(multi_dates)
+	for i in range(len(multi_dates)):
+		multi_dates[i] = multi_dates[i][intersection_i[i]]
+		multi_series[i] = multi_series[i][intersection_i[i]]
 
-			closest_temp_dates = climate_data['122']["dates"][i_122]
-			closest_temp_data = (climate_data['122']["values"][i_122] + climate_data['123']["values"][i_123])/2.
-			
-			assert (closest_temp_dates[-1] - closest_temp_dates[0]).days == (len(closest_temp_dates) - 1)
-			
-			print "closest found temperature", closest_names[closest_i], closest_ids[closest_i], closest_locations[closest_i]
-			break			
+		assert numpy.all(multi_dates[i] == multi_dates[0])
+		assert (multi_dates[i][-1] - multi_dates[i][0]).days == (len(multi_dates[i]) - 1) # check contiguous, TODO: otherwise add nans then interpolate
 
-	for closest_i in range(len(closest_names)):
-		climate_data = get_bom_climate(zipped_sites_dir, closest_ids[closest_i])
-		if '136' in climate_data:
-			closest_rain_dates = climate_data['136']["dates"]
-			closest_rain_data = climate_data['136']["values"] 
-			print "closest found rainfall", closest_names[closest_i], closest_ids[closest_i], closest_locations[closest_i]
-			break
 
+	for i in range(len(multi_dates)):
+		plt.plot(multi_dates[i], multi_series[i], label=multi_names[i])
+	plt.legend()
+	plt.show()
+
+	
 
 
 	print bom_obs_types
