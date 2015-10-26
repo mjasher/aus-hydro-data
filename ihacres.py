@@ -198,7 +198,7 @@ def flow():
 	# Qs[i,t] = beta[i] * U[t] * A - alpha[i] * Q[i, t-1]
 
 
-def effective_rainfall():
+def redesigned_effective_rainfall():
 	'''
 	"Redesign of the IHACRES rainfall-runoff model"
 	----------------------------------------------

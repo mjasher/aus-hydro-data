@@ -84,13 +84,13 @@ Deep leads
 Bedrock
 
 
-
-
-Looking at 
-Nov_2013_-_Lower_Campaspe_Valley_WSPA_Plan_A4_FINAL-fixed_for_web.pdf
-and the annual report (30_Sept_2015-LOWER_CAMPASPE_VALLEY_WSPA_ANNUAL_REPORT_-_2014_15_-_SIGNED.pdf) figure 1.
-and http://www.g-mwater.com.au/downloads/Groundwater/2843217_v8_REPORT_INTERIM_MANAGEMENT_ARRRANGEMEN.pdf
+Looking at "Lower Campaspe Valley Water Supply Protection Area Groundwater Management Plan"
+[AP2015](Nov_2013_-_Lower_Campaspe_Valley_WSPA_Plan_A4_FINAL-fixed_for_web.pdf)
+[Planv1](30_Sept_2015-LOWER_CAMPASPE_VALLEY_WSPA_ANNUAL_REPORT_-_2014_15_-_SIGNED.pdf) 
+[Plan](http://www.g-mwater.com.au/downloads/Groundwater/2843217_v8_REPORT_INTERIM_MANAGEMENT_ARRRANGEMEN.pdf)
 ------------------------------------------
+figure 1.
+
 
 Thresholds for allocations.
 
@@ -121,6 +121,27 @@ Parsons Rd
 Bendigo - Tennyson Road
 Waranga Western Channel
 Echuca - Mitiamo Road
+
+AHGFAquiferBoundary
+===============
+Lower Renmark Group 
+Calivil - Upper Tertiary Aquifer (fluvial) undifferentiated 
+Shepparton - UTQA
+
+Quaternary basalt (Coliban?)
+
+AHGFSurficialHydrogeologicUnit
+================
+Hy and Sy values
+
+VWAD_AQ
+================
+VWAD_AQ.shp
+Calivil, Renmark 
+Shepparton
+Others
+
+deepld250_polygon.shp - deep lead
 
 1991 FEM model:
 ========================================================

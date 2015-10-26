@@ -142,6 +142,43 @@ def bom_ts_to_geojson(site_ids, site_locations, zipped_sites_dir, destination_di
 
 
 """
+For given BOM site ID, returns { obs_code: {"type": obs_type, "dates": dates, "values": values} }
+
+TODO download if not alread in zipped_sites_dir
+"""
+def get_bom_climate(zipped_sites_dir, chosen_id):
+	
+	bom_re = re.compile('(\d{6})_(\d{3}).zip')
+
+	zipped_files = [f for f in os.listdir(zipped_sites_dir) if bom_re.match(f)]
+
+	climate_data = {}
+
+	for zipped_f in zipped_files:
+		site_id = bom_re.match(zipped_f).group(1)
+		obs_code = bom_re.match(zipped_f).group(2)
+		obs_type = bom_obs_types[obs_code]
+
+		if site_id == chosen_id:
+
+			archive = zipfile.ZipFile(os.path.join(zipped_sites_dir, zipped_f))
+			csvfile = filter(lambda filename: filename.endswith(".csv"), archive.namelist())[0]
+			reader = csv.DictReader(archive.open(csvfile))
+			raw_rows = [row	for row in reader]
+			# dates = [row["Year"]+"-"+row["Month"]+"-"+row["Day"] for row in raw_rows]
+			dates = numpy.array([datetime.datetime(int(row["Year"]), int(row["Month"]), int(row["Day"])) for row in raw_rows])
+			values = numpy.array([utils.as_float(row[obs_type]) for row in raw_rows])
+
+			climate_data[obs_code] = {"type": obs_type, "dates": dates, "values": values}
+
+	return climate_data
+		# site_locations[site_ids.index(site_id)]
+
+
+
+"""
+	closest_first_bom() and closest_obs() are used by surface_water.py
+
 	* list of sites [manually]( http://www.bom.gov.au/climate/data ) or
  	* ftp://ftp.bom.gov.au/anon2/home/ncc/metadata/sitelists/stations.zip -> stations.txt
 """
@@ -180,39 +217,22 @@ def closest_first_bom(all_bom_sites_file, chosen_lat, chosen_lng, chosen_start):
 	
 	return site_names[sorted_i], site_ids[sorted_i], site_locations[sorted_i]
 
+'''
+For an obs_code and output of closest_first_bom(), return the nearest "complete" observations
+'''
 
-"""
-For given BOM site ID, returns { obs_code: {"type": obs_type, "dates": dates, "values": values} }
-
-TODO download if not alread in zipped_sites_dir
-"""
-def get_bom_climate(zipped_sites_dir, chosen_id):
-	
-	bom_re = re.compile('(\d{6})_(\d{3}).zip')
-
-	zipped_files = [f for f in os.listdir(zipped_sites_dir) if bom_re.match(f)]
-
-	climate_data = {}
-
-	for zipped_f in zipped_files:
-		site_id = bom_re.match(zipped_f).group(1)
-		obs_code = bom_re.match(zipped_f).group(2)
-		obs_type = bom_obs_types[obs_code]
-
-		if site_id == chosen_id:
-
-			archive = zipfile.ZipFile(os.path.join(zipped_sites_dir, zipped_f))
-			csvfile = filter(lambda filename: filename.endswith(".csv"), archive.namelist())[0]
-			reader = csv.DictReader(archive.open(csvfile))
-			raw_rows = [row	for row in reader]
-			# dates = [row["Year"]+"-"+row["Month"]+"-"+row["Day"] for row in raw_rows]
-			dates = numpy.array([datetime.datetime(int(row["Year"]), int(row["Month"]), int(row["Day"])) for row in raw_rows])
-			values = numpy.array([utils.as_float(row[obs_type]) for row in raw_rows])
-
-			climate_data[obs_code] = {"type": obs_type, "dates": dates, "values": values}
-
-	return climate_data
-		# site_locations[site_ids.index(site_id)]
+def closest_obs(obs_code, dates, closest_names, closest_ids, closest_locations, zipped_sites_dir, bom_obs_types):
+	print dates[0], dates[-1]
+	for closest_i in range(len(closest_names)):
+		climate_data = get_bom_climate(zipped_sites_dir, closest_ids[closest_i])
+		if obs_code in climate_data and \
+			utils.intersection_size([climate_data[obs_code]["dates"], dates]) > 5*365:
+			closest_dates = climate_data[obs_code]["dates"]
+			closest_data = utils.interpolate(climate_data[obs_code]["values"]) 
+			print "closest", bom_obs_types[obs_code], closest_names[closest_i], closest_ids[closest_i], closest_locations[closest_i]
+			return closest_i, closest_dates, closest_data
+	print "ERROR: NO closest", bom_obs_types[obs_code]
+	return 0, [], []
 
 
 

@@ -39,3 +39,7 @@ def intersection_indices(multiple_series):
 	for series in multiple_series:
 		shared_i.append([i for i in range(len(series)) if series[i] in shared])
 	return shared_i
+
+def intersection_size(multiple_series):
+	shared = set.intersection(*[set(series) for series in multiple_series])
+	return len(shared)

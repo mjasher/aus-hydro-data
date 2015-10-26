@@ -62,7 +62,7 @@ if __name__ == '__main__':
 	print "==============="
 	print sum([a["properties"]["SHAPE_AREA"] for a in aquifers["features"] if "Shepparton Fm" in a["properties"]["GEOVAFGEOL"]])
 
-	
+
 	'''
 	print aquifers["features"][0]["properties"].keys()
 	[u'SHAPE_AREA', u'NOTES', u'MAP_AVLBLE', u'ECO_IRRGTN', u'PCF_ASSET', u'ENV_GDE', 

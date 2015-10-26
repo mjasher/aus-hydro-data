@@ -247,7 +247,8 @@
     });
 
 
-    d3.json('/raster_data/bore_elevations.json', function(data) {
+    // d3.json('/raster_data/bore_elevations.json', function(data) {
+    d3.json('/clipped_data/vic_water_bores.json', function(data) {
 
         control_left.addOverlay(
             L.geoJson(data, {
