@@ -5,6 +5,7 @@ BAS6          13 tutorial2MainProcess.bas
 LPF           15 tutorial2MainProcess.lpf 
 PCG           27 tutorial2MainProcess.pcg 
 RIV           18 tutorial2MainProcess.riv 
+RCH           19 tutorial2MainProcess.rch 
 WEL           20 tutorial2MainProcess.wel 
 OC            14 tutorial2MainProcess.oc 
 DATA(BINARY)  51 tutorial2MainProcess.hds REPLACE

@@ -45,12 +45,19 @@ important_bores = {
 	"62589": "for seasonal allocations of Barnadown zone",
 }
 
+wspa_bores_file = '../WSPA_bores.csv'
 level_file = "../downloaded_data/GW level data.csv"
 site_file = "../downloaded_data/GW site data.csv"
 dest_dir = "../clipped_data/"
 
+with open(wspa_bores_file) as f:
+	reader = csv.DictReader(f)
+	wspa_bores = [r for r in reader]
+
+
 def load_sites():
-	locations = {k: {} for k in important_bores}
+	# locations = {k: {} for k in important_bores}
+	locations = {k['id']: {} for k in wspa_bores}
 	with open(site_file) as f:
 		reader = csv.DictReader(f)
 		for row in reader:
@@ -59,12 +66,12 @@ def load_sites():
 				locations[row["STATION"].strip()]["lng"] = float(row["LONGITUDE"])
 		print row.keys()
 
-	print locations
 	return locations
 
 
 def load_level():
-	important_data = {k: [] for k in important_bores}
+	# important_data = {k: [] for k in important_bores}
+	important_data = {k['id']: {"info":k, "data":[]} for k in wspa_bores}
 	locations = load_sites()
 	geojson = {"type": "FeatureCollection", "features": []}
 
@@ -75,33 +82,39 @@ def load_level():
 	for row in rows:
 		BORE_ID, DATE, METHOD, unsure, CONDITION, QUALITY, WLMP_m, DBNS_m, RWL_mAHD = row
 		if BORE_ID.strip() in important_data:
-			important_data[BORE_ID.strip()].append([DATE, DBNS_m, RWL_mAHD])
+			important_data[BORE_ID.strip()]["data"].append([DATE, DBNS_m, RWL_mAHD])
 
 	keys = important_data.keys()
 	for i, k in enumerate(keys):
-		date = numpy.array([datetime.datetime.strptime(r[0].strip(), "%m/%d/%Y") for r in important_data[k]])
-		DBNS_m = numpy.array([float(r[1]) for r in important_data[k]])
-		RWL_mAHD = numpy.array([float(r[2]) for r in important_data[k]])
-		sort_i = numpy.argsort(date)
 
-		geojson["features"].append({ 
-				"type": "Feature",
-				"geometry": {
-					"type": "Point",
-					"coordinates": [locations[k]["lng"], locations[k]["lat"]]
-				},
-				"properties": {
-					"station": k,
-					"info": important_bores[k],
-					"date": [d.strftime("%Y%m%d%H%M%S") for d in date[sort_i]],
-					"DBNS_m": DBNS_m[sort_i].tolist(),
-					"RWL_mAHD": RWL_mAHD[sort_i].tolist(),
-				}
-			})
+		try: 
+			date = numpy.array([datetime.datetime.strptime(r[0].strip(), "%m/%d/%Y") for r in important_data[k]["data"]])
+			DBNS_m = numpy.array([float(r[1]) for r in important_data[k]["data"]])
+			RWL_mAHD = numpy.array([float(r[2]) for r in important_data[k]["data"]])
+			sort_i = numpy.argsort(date)
 
-		plt.subplot(numpy.ceil(len(keys)/2.), 2, i+1)
-		plt.plot(date[sort_i],RWL_mAHD[sort_i])
-		plt.title(k + important_bores[k])
+			important_data[k]["info"].update({
+										"station": k,
+										"date": [d.strftime("%Y%m%d%H%M%S") for d in date[sort_i]],
+										"DBNS_m": DBNS_m[sort_i].tolist(),
+										"RWL_mAHD": RWL_mAHD[sort_i].tolist(),
+									})
+
+			geojson["features"].append({ 
+					"type": "Feature",
+					"geometry": {
+						"type": "Point",
+						"coordinates": [locations[k]["lng"], locations[k]["lat"]]
+					},
+					"properties": important_data[k]["info"]
+				})
+
+			plt.subplot(numpy.ceil(len(keys)/2.), 2, i+1)
+			plt.plot(date[sort_i],RWL_mAHD[sort_i])
+			plt.title(k + important_data[k]["info"]['notes'] + important_data[k]["info"]['legislation'])
+
+		except:
+			print "BLANK: ", important_data[k]["info"]
 
 	plt.show()
 

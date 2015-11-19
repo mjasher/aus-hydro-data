@@ -24,15 +24,13 @@ def run_modflow(plot=False):
     ncol = 10
     delr = Lx / ncol
     delc = Ly / nrow
-    # delv = (ztop - zbot) / nlay
+    delv = (ztop - zbot) / nlay
     botm = np.linspace(ztop, zbot, nlay + 1)
     hk = 1.
     vka = 1.
     sy = 0.1
     ss = 1.e-4
-    laytyp = [1, 0, 0]
-    laycbd = 0
-
+    laytyp = 1
 
     # Variables for the BAS package
     # Note that changes from the previous tutorial!
@@ -51,21 +49,30 @@ def run_modflow(plot=False):
     model_dir = "MODFLOW_IO/"+model_name+"/"
     model_name += str(multiprocessing.current_process().name)
     mf = flopy.modflow.Modflow(model_name, exe_name=MODFLOW_executable, model_ws=model_dir)
-    dis = flopy.modflow.ModflowDis(mf, nlay, nrow, ncol, delr=delr, delc=delc, laycbd=laycbd,
+    dis = flopy.modflow.ModflowDis(mf, nlay, nrow, ncol, delr=delr, delc=delc,
                                    top=ztop, botm=botm[1:],
                                    nper=nper, perlen=perlen, nstp=nstp,
                                    steady=steady)
     bas = flopy.modflow.ModflowBas(mf, ibound=ibound, strt=strt)
-    lpf = flopy.modflow.ModflowLpf(mf, 
-        hk=hk, vka=vka, 
-        sy=sy, 
-        ss=ss, laytyp=laytyp)
+    lpf = flopy.modflow.ModflowLpf(mf, hk=hk, vka=vka, sy=sy, ss=ss, laytyp=laytyp)
     pcg = flopy.modflow.ModflowPcg(mf)
 
     # [lay, row, col, stage, cond, rbot]
 
     # Make list for stress period 1
+    stageleft = 10.
+    stageright = 10.
     rbot = -5.
+    bound_sp1 = []
+    for il in range(nlay):
+        condleft = hk * (stageleft - zbot) * delc
+        condright = hk * (stageright - zbot) * delc
+        for ir in range(nrow):
+            bound_sp1.append([il, ir, 0, stageleft, condleft, rbot])
+            bound_sp1.append([il, ir, ncol - 1, stageright, condright, rbot])
+    print('Adding ', len(bound_sp1), 'RIVs for stress period 1.')
+
+    # Make list for stress period 2
     stageleft = 10.
     stageright = 0.
     condleft = hk * (stageleft - zbot) * delc
@@ -75,32 +82,33 @@ def run_modflow(plot=False):
         for ir in range(nrow):
             bound_sp2.append([il, ir, 0, stageleft, condleft, rbot])
             bound_sp2.append([il, ir, ncol - 1, stageright, condright, rbot])
+    print('Adding ', len(bound_sp2), 'RIVs for stress period 2.')
 
     # We do not need to add a dictionary entry for stress period 3.
     # Flopy will automatically take the list from stress period 2 and apply it
     # to the end of the simulation
-    stress_period_data = {0: bound_sp2}
+    stress_period_data = {0: bound_sp1, 1: bound_sp2}
 
     # # Create the flopy ghb object
     # ghb = flopy.modflow.ModflowGhb(mf, stress_period_data=stress_period_data)
     riv = flopy.modflow.ModflowRiv(mf, stress_period_data=stress_period_data)
 
-    rech = {}
-    rech[1] = 1.2e-4 #stress period 1 to 2
-    rech[2] = 1.2e-5 #stress to the end
-    rch = flopy.modflow.ModflowRch(mf, nrchop=3, rech=rech)
-
     # Create the well package
     # Remember to use zero-based layer, row, column indices!
     pumping_rate = -500.
+    wel_sp1 = [[0, nrow/2 - 1, ncol/2 - 1, 0.]]
+    wel_sp2 = [[0, nrow/2 - 1, ncol/2 - 1, 0.]]
     wel_sp3 = [[0, nrow/2 - 1, ncol/2 - 1, pumping_rate]]
-    stress_period_data = { 2: wel_sp3}
+    stress_period_data = {0: wel_sp1, 1: wel_sp2, 2: wel_sp3}
     wel = flopy.modflow.ModflowWel(mf, stress_period_data=stress_period_data)
+
 
     # Output control
     stress_period_data = {(0, 0): ['save head',
                                    'save drawdown',
-                                   'save budget']}
+                                   'save budget',
+                                   'print head',
+                                   'print budget']}
     save_head_every = 1
     oc = flopy.modflow.ModflowOc(mf, stress_period_data=stress_period_data,
                                  compact=True)

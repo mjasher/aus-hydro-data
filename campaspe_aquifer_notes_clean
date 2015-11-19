@@ -1,15 +1,32 @@
+Bores
+===================================
+From [G-M Water Lower Campaspe Valley WSPA] annual report.
+
+'WSPA_bores.csv', vic_water_bores.py
+
+'vwad_aquifers.json', vwad.py
 
 
+layers = [
+	{"name": "Coliban", "bottom": 63, "keys": ["basalt"],}
+	{"name": "Shepparton", "bottom": 63, "keys": ["Shepparton F"],}
+	{"name": "Calivil", "bottom": 85, "keys": ["Upper Tertiary Aquifer (fluvial)", "Calivil Fm"],}
+	{"name": "Renmark", "bottom": 122, "keys": ["Renmark"],}
+			]
+
+
+Geology
+===================================
 There are several major geological features:
-
 * Coliban basalt, Quaternary basalt, 34m thick, 0-63m down
 	- south of catchment
 	- steady head
 	- fractured
 	- south of catchment
 * Shepparton Formation, Upper Tertiary/Quaternary Aquifer (UTQA), avg 35m thick, 0-63m down
-	- Hydraulic conductivities 0.5 to 8 m/day
-	- specific yields 0.01 to 0.02
+	- Hydraulic conductivities 0.5 to 8 m/day [CSIRO]
+	- specific yields 0.01 to 0.02 [CSIRO]
+	- IGWWaterTableHydraulicConductivity [BOM Geofabric] suggests higher water table values of 0.01-0.2 for specific yields and 0.1 to 50 for hydraulic conductivity
 	- salinity less than 1,000 mg/L TDS near the Campaspe River; 3,000 mg/L TDS near Rochester River; and greater than 13,000 mg/L TDS elsewhere
 	- drawdowns
 	- recharged via rainfall, river, irrigation (over 100 mm/year in intensively developed areas such as the Campaspe Irrigation District and the Rochester Irrigation Area)
@@ -26,13 +43,9 @@ There are several major geological features:
 	- fluctuate head (by 20m) in response to seasonal pumping
 	- steady drawdown has been observed since the mid-1990s
 	- average of 15,557 ML of groundwater used per year (23,000 and 30,000 ML/year in the Campaspe Deep Lead WSPA)
+* Basement or bedrock, 298m thick, 122-322m down
 
-
-Bores
-===================================
-From WSPA annual report.
-
-'WSPA_bores.csv'
+From [CSIRO Southern Riverine Plains Groundwater Model Calibration Report], [DEPI Groundwater report], [G-M Water Lower Campaspe Valley WSPA], [Victorian Water Asset Database (VWAD) - AQUIFER_LAYER], [BOM Geofabric].
 
 References
 ===================================

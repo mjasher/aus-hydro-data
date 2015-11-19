@@ -54,7 +54,7 @@ etc.
 
 """
 
-import numpy as np
+import numpy
 import json
 import csv
 from osgeo import ogr, osr, gdal
@@ -87,7 +87,7 @@ def ogr_to_raster( source_file, nrow, ncol, bbox, rasterize, filter=False ):
 	pixelWidth = (x_max - x_min)/ncol
 	pixelHeight = (y_max - y_min)/nrow
 
-	array = np.empty((nrow, ncol)).tolist()
+	array = numpy.empty((nrow, ncol)).tolist()
 	for row in range(nrow):
 		for col in range(ncol):
 
@@ -119,6 +119,61 @@ def ogr_to_raster( source_file, nrow, ncol, bbox, rasterize, filter=False ):
 	}
 
 
+def rasterize_geom(geom, nrow, ncol, bbox, rasterize, filter=False):
+	x_min = bbox[0][1]
+	x_max = bbox[1][1]
+	y_min = bbox[1][0]
+	y_max = bbox[0][0]
+
+	pixelWidth = (x_max - x_min)/ncol
+	pixelHeight = (y_max - y_min)/nrow
+
+	array = numpy.empty((nrow, ncol)).tolist()
+	for row in range(nrow):
+		for col in range(ncol):
+
+			# Create clipping polygon
+			ring = ogr.Geometry(ogr.wkbLinearRing)
+			ring.AddPoint(x_min+(col)*pixelWidth, y_min+(row)*pixelHeight)
+			ring.AddPoint(x_min+(col+1)*pixelWidth, y_min+(row)*pixelHeight)
+			ring.AddPoint(x_min+(col+1)*pixelWidth, y_min+(row+1)*pixelHeight)
+			ring.AddPoint(x_min+(col)*pixelWidth, y_min+(row+1)*pixelHeight)
+			ring.AddPoint(x_min+(col)*pixelWidth, y_min+(row)*pixelHeight)
+			poly = ogr.Geometry(ogr.wkbPolygon)
+			poly.AddGeometry(ring)
+
+			array[row][col] = rasterize(geom, poly)
+
+	return numpy.array(array)
+
+
+def contour_to_array(nrow, ncol, bbox, in_file, prop):
+	# TODO use weighted average rather than simply the closest
+	def rasterize_top(source_layer, clipping_poly):
+		centroid = clipping_poly.Centroid()
+
+		properties = [
+			(feature.GetGeometryRef().Distance(centroid), feature.GetField(prop))
+			for feature in source_layer
+			if feature.GetField(prop) is not None
+		]
+		sorted_properties = numpy.sort(
+			numpy.array(
+				properties, 
+				dtype = [('distance', float), (prop, float)]
+			), 
+			order='distance'
+		)
+		val = sorted_properties[0][prop]
+		return val
+
+	# contour_file = os.path.join(data_dir, "APPT250K_Contours_line.json")
+	contour_file = os.path.join(data_dir, in_file)
+
+	return ogr_to_raster( contour_file, nrow, ncol, bbox, rasterize_top)
+
+
+
 """
 Calculates distance in EPSG:to_epsg of two points in EPSG:from_epsg
 
@@ -147,44 +202,16 @@ def projected_distance(from_epsg, to_epsg, p1, p2):
 
 	return p1_geo.Distance(p2_geo)
 
-
-class counter():
-	def __init__(self):
-		self.count = 0
-	def inc(self):
-		self.count += 1
-	def tot(self):
-		return self.count
-
-
-def contour_to_array(nrow, ncol, bbox, in_file, prop):
-	# TODO use weighted average rather than simply the closest
-	def rasterize_top(source_layer, clipping_poly):
-		centroid = clipping_poly.Centroid()
-
-		properties = [
-			(feature.GetGeometryRef().Distance(centroid), feature.GetField(prop))
-			for feature in source_layer
-			if feature.GetField(prop) is not None
-		]
-		sorted_properties = np.sort(
-			np.array(
-				properties, 
-				dtype = [('distance', float), (prop, float)]
-			), 
-			order='distance'
-		)
-		val = sorted_properties[0][prop]
-		return val
-
-	# contour_file = os.path.join(data_dir, "APPT250K_Contours_line.json")
-	contour_file = os.path.join(data_dir, in_file)
-
-	return ogr_to_raster( contour_file, nrow, ncol, bbox, rasterize_top)
+# class counter():
+# 	def __init__(self):
+# 		self.count = 0
+# 	def inc(self):
+# 		self.count += 1
+# 	def tot(self):
+# 		return self.count
 
 
-def make_dis(nrow, ncol, bbox):
-
+def make_del(nrow, ncol, bbox, save=False):
 	x_min = bbox[0][1]
 	x_max = bbox[1][1]
 	y_min = bbox[1][0]
@@ -192,24 +219,134 @@ def make_dis(nrow, ncol, bbox):
 
 	# delr_deg = (x_max - x_min)/ncol
 	# delc_deg = (y_max - y_min)/nrow
-
 	# get distance in meters
 	delr = projected_distance(4326, 4087, {"lng": x_min, "lat": y_min}, {"lng": x_max, "lat": y_min})/ncol 
 	delc = projected_distance(4326, 4087, {"lng": x_min, "lat": y_min}, {"lng": x_min, "lat": y_max})/nrow
 
-	top_json = contour_to_array(nrow, ncol, bbox, in_file="AHGFAquiferContour.json", prop='ContValue')
+	return delr, delc
 
-	top_json["extra"] = {"delr": delr, "delc": delc}
-	with open(os.path.join(dest_dir, 'top.json'), 'w') as f:
-		f.write(json.dumps(top_json))
+def make_top(nrow, ncol, bbox, save=False):
+	elevation_json = contour_to_array(nrow, ncol, bbox, in_file=os.path.join(data_dir, "APPT250K_Contours_line.json"), prop='ELEVATION')
+	print elevation_json
+	if save:
+		with open(os.path.join(dest_dir, 'elevation.json'), 'w') as f:
+			f.write(json.dumps(elevation_json))
 
+	return numpy.array(elevation_json["array"])
 
-def make_elev(nrow, ncol, bbox):
+def make_bot(nrow, ncol, bbox, top, save=False):
+
+	aquifer_source_file = os.path.join(data_dir, "VWAD_AQ.json")
+
+	aquifer_terms = {
+			"Calivil":	["Upper Tertiary Aquifer (fluvial)", "Calivil Fm"],
+			"Renmark":	["Renmark"],
+			"Shepparton":	["Shepparton F"],
+			"Coliban":	["basalt"],
+			"aeolian": ["Various aeolian deposits"],
+			}
+
+	aquifers = {k: ogr.Geometry(ogr.wkbPolygon) for k in aquifer_terms}
+
+	source_ds = ogr.Open(aquifer_source_file)
+	source_layer = source_ds.GetLayer()
+	for feature in source_layer:
+		GEOVAFGEOL = feature.GetField("GEOVAFGEOL")
+		for k, ts in aquifer_terms.iteritems():
+			for term in ts:
+				if term in GEOVAFGEOL:
+					aquifers[k] = aquifers[k].Union(feature.GetGeometryRef())
 	
-	elevation_json = contour_to_array(nrow, ncol, bbox, in_file="APPT250K_Contours_line.json", prop='ELEVATION')
+
+	if save:
+		geojson = {"type": "FeatureCollection", "features": []}
+		for k, a in aquifers.iteritems():
+			geojson["features"].append({
+					"type": "Feature",
+					"geometry": json.loads(a.ExportToJson()),
+					"properties": {
+						"name": '/'.join(aquifer_terms[k])
+					}
+				})
+		with open(os.path.join(data_dir,'vwad_aquifers.json'), 'w') as f:
+			f.write(json.dumps(geojson))
+
+
+	ibound = []
+	bot = []
+	hk = []
+	sy = []
+	ss = []
+	laytyp = []
+	laycbd = []
+
+	def rasterize_ibound(geom, clipping_poly):
+		if geom.Intersection(clipping_poly).Area()/clipping_poly.Area() > 0.1:
+			return 1
+		else:
+			return 0
+
+	Coliban = rasterize_geom(aquifers["Coliban"], nrow, ncol, bbox, rasterize_ibound, filter=False)
+	Shepparton = rasterize_geom(aquifers["Shepparton"], nrow, ncol, bbox, rasterize_ibound, filter=False)
+	hk = numpy.zeros((nrow, ncol))
+	hk[Coliban > 0] = 0.01
+	hk[Shepparton > 0] = 2.
+	sy = numpy.zeros((nrow, ncol))
+	sy[Coliban > 0] = 0.00001
+	sy[Shepparton > 0] = 0.015
+
+	ibound.append(Coliban+Shepparton)
+	bot.append(top - 63.)
+	hk.append(hk)
+	sy.append(sy)
+	ss.append(sy/1e3)
+	laytyp.append(1)
+	laycbd.append(0)
+
+
+	Calivil = rasterize_geom(aquifers["Calivil"], nrow, ncol, bbox, rasterize_ibound, filter=False)
+	hk = numpy.zeros((nrow, ncol))
+	hk[Calivil > 0] = 50
+	sy = numpy.zeros((nrow, ncol))
+	sy[Calivil > 0] = 0.1
+
+	ibound.append(Calivil)
+	bot.append(top - 85.)
+	hk.append(hk)
+	# sy.append(sy)
+	ss.append(sy/1e3)
+	laytyp.append(0)
+	laycbd.append(0)
+
+	Renmark = rasterize_geom(aquifers["Renmark"], nrow, ncol, bbox, rasterize_ibound, filter=False)
+	hk = numpy.zeros((nrow, ncol))
+	hk[Renmark > 0] = 70
+	sy = numpy.zeros((nrow, ncol))
+	sy[Renmark > 0] = 0.1
+
+	ibound.append(Renmark)
+	bot.append(top - 122.)
+	hk.append(hk)
+	# sy.append(sy)
+	ss.append(sy/1e3)
+	laytyp.append(0)
+	laycbd.append(0)
 	
-	with open(os.path.join(dest_dir, 'elevation.json'), 'w') as f:
-		f.write(json.dumps(elevation_json))
+	return ibound, bot, hk, sy, ss, laytyp, laycbd
+
+
+
+
+
+	# for i,a in enumerate(aquifers):
+	# 	ibound.append( rasterize_geom(a, nrow, ncol, bbox, rasterize_ibound, filter=False) )
+	# 	bot.append( rasterize_geom(a, nrow, ncol, bbox, rasterize_bot, filter=False) )
+
+
+
+
+	
+
 
 
 def make_ibound(nrow, ncol, bbox):
@@ -253,7 +390,7 @@ def make_riv(nrow, ncol, bbox):
 				# clipped = feature.GetGeometryRef().Clone().Intersection(clipping_poly)
 				clipped.Transform(transform)
 				properties.append(clipped.Length())
-		return np.sum(properties)
+		return numpy.sum(properties)
 
 
 	raster =  ogr_to_raster(
@@ -270,16 +407,16 @@ def make_hk_sy(nrow, ncol, bbox):
 	# TODO vka and ss 
 
 	def rasterize_hk_sy(source_layer, clipping_poly):
-		properties = np.array([
+		properties = numpy.array([
 			[feature.GetGeometryRef().Clone().Intersection(clipping_poly).Area(),
 				feature.GetField('HydKValue'), feature.GetField('SpecYield')]
 			for feature in source_layer
 			# if feature.GetField('HydKValue') != None
 		])
-		if len(properties) == 0 or np.sum(properties[:,0]) == 0:
+		if len(properties) == 0 or numpy.sum(properties[:,0]) == 0:
 			return [-9999, -9999]
 		else:
-			return [np.average(properties[:,1], weights=properties[:,0]), np.average(properties[:,2], weights=properties[:,0])]
+			return [numpy.average(properties[:,1], weights=properties[:,0]), numpy.average(properties[:,2], weights=properties[:,0])]
 
 
 	hk_sy_mean =  ogr_to_raster(
@@ -333,7 +470,7 @@ def make_strt(nrow, ncol, bbox):
 			day_dot = datetime.datetime(2008,1,1) # make sure this is before the first day
 			# interp_dates = [datetime.datetime(2010,4,16), datetime.datetime(2013,2,22), datetime.datetime(2014,4,1), datetime.datetime(2014,12,31) ]
 			interp_dates = [datetime.datetime(2015,6,1)]
-			interp_values = np.interp([(d - day_dot).days for d in interp_dates], [(d - day_dot).days for d in dates], values)
+			interp_values = numpy.interp([(d - day_dot).days for d in interp_dates], [(d - day_dot).days for d in dates], values)
 
 
 			# print rows[0], variable_info["name"], ' - ', variable_info["subdesc"]
@@ -396,19 +533,19 @@ def make_strt(nrow, ncol, bbox):
 	# delr = elevations["pixelWidth"] # x, lng, ncol, delr
 	# cnr = elevations["bottomLeft"]
 
-	# z = np.array(elevations["array"])
+	# z = numpy.array(elevations["array"])
 	# nrow, ncol = z.shape
 	# print nrow, ncol
 
 	# from scipy import interpolate
-	# # x, y = np.mgrid[cnr["lng"]+(0.5)*delr : cnr["lng"]+(ncol-0.5)*delr : ncol*1j , \
+	# # x, y = numpy.mgrid[cnr["lng"]+(0.5)*delr : cnr["lng"]+(ncol-0.5)*delr : ncol*1j , \
 	# # 				cnr["lat"]+(0.5)*delc : cnr["lat"]+(nrow-0.5)*delc : nrow*1j]
 	# # print x.shape
 	# # print y.shape
 	# # print z.shape
-	# xx = np.linspace(cnr["lng"]+(0.5)*delr, cnr["lng"]+(ncol-0.5)*delr, ncol)
-	# yy = np.linspace(cnr["lat"]+(0.5)*delc, cnr["lat"]+(nrow-0.5)*delc, nrow)
-	# x, y = np.meshgrid(xx, yy)
+	# xx = numpy.linspace(cnr["lng"]+(0.5)*delr, cnr["lng"]+(ncol-0.5)*delr, ncol)
+	# yy = numpy.linspace(cnr["lat"]+(0.5)*delc, cnr["lat"]+(nrow-0.5)*delc, nrow)
+	# x, y = numpy.meshgrid(xx, yy)
 
 	# tck = interpolate.bisplrep(x, y, z, s=0)
 
@@ -479,16 +616,22 @@ def test_dis(nrow, ncol, bounding_box):
 
 
 if __name__ == '__main__':
-	data_dir = "/home/mikey/Downloads/aus-hydro-data/clipped_data/"
-	dest_dir = "/home/mikey/Downloads/aus-hydro-data/raster_data/"
+	data_dir = "/home/mikey/Desktop/aus-hydro-data/clipped_data/"
+	dest_dir = "/home/mikey/Desktop/aus-hydro-data/raster_data/"
 	bbox = [[-35.752101, 144.192687], [-37.450203, 145.022532]] #  top left, bottom right
 	nrow, ncol = (40, 20)
 	
+	save = False
+	# delr, delc = make_del(nrow, ncol, bbox, save=save)
+	top = make_top(nrow, ncol, bbox, save=save)
+	ibound, bot, hk, sy, ss, laytyp, laycbd = make_bot(nrow, ncol, bbox, top=top, save=save)
+
+
 	# make_dis(nrow, ncol, bbox)
 	# make_elev(nrow, ncol, bbox)
 	# make_ibound(nrow, ncol, bbox)
 	# make_riv(nrow, ncol, bbox)
 	# make_hk_sy(nrow, ncol, bbox)
-	make_strt(nrow, ncol, bbox)
+	# make_strt(nrow, ncol, bbox)
 
 	# test_dis(nrow=80, ncol=40, bounding_box=bbox)
