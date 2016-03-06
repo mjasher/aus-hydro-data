@@ -8,6 +8,8 @@ October 2015
 
 Data and functions to gather it
 --------------------------------------------
+Victorian aquifer framework (ftp://ftp1.land.vic.gov.au/VAF/)
+``` fetch_data.vaf ```
 
 Clipping shape [Campaspe GW Catchment](https://www.data.vic.gov.au/data/dataset/groundwater-catchments-gc)
 ``` clippping_shape() ```
@@ -24,7 +26,6 @@ BOM climate time series (http://www.bom.gov.au/climate/data)
 
 State water data (http://data.water.vic.gov.au/monitoring.htm)
 ``` fetch_data.kisters_hydrology ```
-
 
 Geology data from  GA [Surface Geology of Australia 1:1 million scale dataset 2012 edition](http://www.ga.gov.au/metadata-gateway/metadata/record/gcat_c8856c41-0d5b-2b1d-e044-00144fdd4fa6/Surface+Geology+of+Australia+1%3A1+million+scale+dataset+2012+edition) by downloading the [shapefile](http://www.ga.gov.au/corporate_data/74619/74619_1M_shapefiles.zip).
 Faults: ShearDisplacementLines1M, GeologicUnitPolygons1M.
