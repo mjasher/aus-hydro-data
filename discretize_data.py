@@ -421,7 +421,7 @@ def make_hk_sy(nrow, ncol, bbox):
 
 	hk_sy_mean =  ogr_to_raster(
 			os.path.join(data_dir, "IGWWaterTableHydraulicConductivity.json"),
-			nrow, ncol,
+			nrow, ncol,ap
 			bbox,
 			rasterize_hk_sy,
 			True

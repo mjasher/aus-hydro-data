@@ -6,13 +6,13 @@ From [G-M Water Lower Campaspe Valley WSPA] annual report.
 
 'vwad_aquifers.json', vwad.py
 
-
+Shapes from [Victorian Water Asset Database (VWAD) - AQUIFER_LAYER]
 layers = [
 	{"name": "Coliban", "bottom": 63, "keys": ["basalt"],}
 	{"name": "Shepparton", "bottom": 63, "keys": ["Shepparton F"],}
 	{"name": "Calivil", "bottom": 85, "keys": ["Upper Tertiary Aquifer (fluvial)", "Calivil Fm"],}
 	{"name": "Renmark", "bottom": 122, "keys": ["Renmark"],}
-			]
+]
 
 
 Geology

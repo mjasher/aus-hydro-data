@@ -12,7 +12,7 @@ Victorian aquifer framework (ftp://ftp1.land.vic.gov.au/VAF/)
 ``` fetch_data.vaf ```
 
 Clipping shape [Campaspe GW Catchment](https://www.data.vic.gov.au/data/dataset/groundwater-catchments-gc)
-``` clippping_shape() ```
+``` clipping_shape() ```
 
 BOM Geofabric downloaded from the [BOM FTP server](ftp://ftp.bom.gov.au/anon/home/geofabric/).
 It can be explored using [BOM WMS connection](http://geofabric.bom.gov.au/documentation/) or the [National Map](http://nationalmap.nicta.com.au/).
